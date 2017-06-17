@@ -9,6 +9,7 @@ from storages.utils import setting
 from tempfile import SpooledTemporaryFile
 from django.core.files.base import File
 from django.utils.encoding import force_bytes
+from django.utils.timezone import localtime, is_naive
 
 from azure.common import AzureMissingResourceHttpError
 from azure.storage.blob import ContentSettings
@@ -195,8 +196,22 @@ class AzureStorage(Storage):
         else:
             return "{}{}/{}".format(setting('MEDIA_URL'), self.azure_container, name)
 
-    def modified_time(self, name):
+    def get_modified_time(self, name):
+        """
+        Returns an (aware) datetime object containing the last modified time if
+        USE_TZ is True, otherwise returns a naive datetime in the local timezone.
+        """
         properties = self.connection.get_blob_properties(
             self.azure_container, name).properties
-        modified = properties.last_modified
-        return modified
+        if setting('USE_TZ'):
+            # Azure returns TZ aware timestamps
+            return properties.last_modified
+        else:
+            return localtime(properties.last_modified).replace(tzinfo=None)
+
+    def modified_time(self, name):
+        """Returns a naive datetime object containing the last modified time."""
+        # If USE_TZ=False then get_modified_time will return a naive datetime
+        # so we just return that, else we have to localize and strip the tz
+        mtime = self.get_modified_time(name)
+        return mtime if is_naive(mtime) else localtime(mtime).replace(tzinfo=None)
