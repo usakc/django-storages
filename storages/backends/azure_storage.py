@@ -10,6 +10,7 @@ from tempfile import SpooledTemporaryFile
 from django.core.files.base import File
 from django.utils.encoding import force_bytes
 from django.utils.timezone import localtime, is_naive
+from django.conf import settings
 
 from azure.common import AzureMissingResourceHttpError
 from azure.storage.blob import ContentSettings
@@ -119,6 +120,7 @@ class AzureStorage(Storage):
     azure_ssl = setting("AZURE_SSL")
     max_memory_size = setting('AZURE_BLOB_MAX_MEMORY_SIZE', 0)
     buffer_size = setting('AZURE_FILE_BUFFER_SIZE', 4194304)
+    base_url = settings.STATIC_URL
 
     def __init__(self, *args, **kwargs):
         super(AzureStorage, self).__init__(*args, **kwargs)
